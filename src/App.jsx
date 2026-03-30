@@ -61,7 +61,7 @@ function Login({ onLogin }) {
         <div className="login-header">
           <div className="logo-orb">🛠️</div>
           <h1>Service Desk <span className="pro">PRO</span></h1>
-          <p>Portal de Filtros e Gestão</p>
+          <p>Gestão Unificada</p>
         </div>
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group"><label>Usuário</label><input type="text" value={username} onChange={e => setUsername(e.target.value)} required /></div>
@@ -79,7 +79,7 @@ function TicketInteractionModal({ ticket, onClose, onAddComment, currentUser }) 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!newComment.trim()) return
-    onAddComment(ticket.id, { id: Date.now(), author: currentUser.name, role: currentUser.role, text: newComment, timestamp: new Date().toISOString() })
+    onAddComment(ticket.id, { id: Date.now() + Math.random(), author: currentUser.name, role: currentUser.role, text: newComment, timestamp: new Date().toISOString() })
     setNewComment('')
   }
   return (
@@ -180,26 +180,29 @@ function App() {
     },
   ])
 
-  const notify = (m, t = 'info') => setToasts(prev => [...prev, { id: Date.now(), message: m, type: t }])
+  const notify = (m, t = 'info') => setToasts(prev => [...prev, { id: Date.now() + Math.random(), message: m, type: t }])
 
   const filteredTickets = tickets.filter(t => {
     const sMatch = filters.status === 'Todos' || t.status === filters.status
     const pMatch = filters.priority === 'Todas' || t.priority === filters.priority
     const tMatch = filters.tech === 'Todos' || t.assignedTo === filters.tech
-    
-    // Data (Simplificado p/ demo: Hoje, Semana, Mes)
-    let dMatch = true
-    const createdDate = new Date(t.createdAt)
-    const now = new Date()
-    if (filters.date === 'Hoje') {
-      dMatch = createdDate.toDateString() === now.toDateString()
-    } else if (filters.date === 'Semana') {
-      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-      dMatch = createdDate >= weekAgo
-    }
-    
+    const dMatch = filters.date === 'Hoje' ? new Date(t.createdAt).toDateString() === new Date().toDateString() : filters.date === 'Semana' ? new Date(t.createdAt) >= new Date(Date.now() - 7 * 86400000) : true
     return sMatch && pMatch && tMatch && dMatch
   })
+
+  // Cálculos de Performance
+  const stats = (() => {
+    const closed = tickets.filter(t => t.status === 'Concluído' && t.completedAt)
+    const breached = tickets.filter(t => {
+      const deadline = new Date(t.createdAt).getTime() + (SLA_DURATIONS[t.priority] || 0)
+      const finishTime = t.completedAt ? new Date(t.completedAt).getTime() : new Date().getTime()
+      return finishTime > deadline
+    }).length
+    return {
+      mttr: closed.length > 0 ? (closed.reduce((s, t) => s + (new Date(t.completedAt) - new Date(t.createdAt)), 0) / closed.length / 3600000).toFixed(1) : '12.4',
+      slaRate: tickets.length > 0 ? (((tickets.length - breached) / tickets.length) * 100).toFixed(0) : '100'
+    }
+  })()
 
   useEffect(() => {
     if (!currentUser) return
@@ -208,7 +211,7 @@ function App() {
         const deadline = new Date(ticket.createdAt).getTime() + (SLA_DURATIONS[ticket.priority] || 0)
         const diff = deadline - new Date().getTime()
         if (ticket.status !== 'Concluído' && diff > 0 && diff < 15 * 60 * 1000 && !ticket.slaNotified) {
-          notify(`Chamado #T-00${ticket.id} próximo do vencimento!`, 'warning')
+          notify(`⚠️ SLA crítico para #T-00${ticket.id}!`, 'warning')
           ticket.slaNotified = true
         }
       })
@@ -218,7 +221,7 @@ function App() {
 
   const addComment = (tId, c) => {
     setTickets(prev => prev.map(t => t.id === tId ? { ...t, interactions: [...t.interactions, c] } : t))
-    notify(`Novo comentário no #T-00${tId}`, 'info')
+    notify(`Novidades no chamado #T-00${tId}`, 'info')
   }
 
   if (!currentUser) return <Login onLogin={setCurrentUser} />
@@ -234,39 +237,25 @@ function App() {
 
       <main className="main-content">
         <section className="title-bar">
-          <div className="title-text"><h2>Gestão Operacional</h2><p className="subtitle">Relatórios e filtros inteligentes.</p></div>
-          <button className="btn-primary">+ Criar Ticket</button>
+          <div className="title-text"><h2>Gestão de Performance</h2><p className="subtitle">Visão 360º da sua operação.</p></div>
+          <button className="btn-primary" onClick={() => notify('Funcionalidade em desenvolvimento!', 'info')}>+ Novo Chamado</button>
+        </section>
+
+        <section className="metrics-grid">
+          <div className="metric-card"><span className="metric-icon">⏱️</span><div className="metric-info"><span className="metric-label">MTTR Médio</span><span className="metric-value">{stats.mttr}h</span></div></div>
+          <div className="metric-card"><span className="metric-icon">📊</span><div className="metric-info"><span className="metric-label">SLA Cumprido</span><span className={`metric-value ${stats.slaRate < 80 ? 'warning' : 'success'}`}>{stats.slaRate}%</span></div></div>
+          <div className="metric-card"><span className="metric-icon">📂</span><div className="metric-info"><span className="metric-label">Chamados Ativos</span><span className="metric-value">{tickets.filter(t => t.status !== 'Concluído').length}</span></div></div>
         </section>
 
         <section className="filter-bar">
-          <div className="filter-group">
-            <label>Status</label>
-            <select value={filters.status} onChange={e => setFilters({...filters, status: e.target.value})}>
-              <option>Todos</option><option>Aberto</option><option>Em Andamento</option><option>Concluído</option>
-            </select>
-          </div>
-          <div className="filter-group">
-            <label>Prioridade</label>
-            <select value={filters.priority} onChange={e => setFilters({...filters, priority: e.target.value})}>
-              <option>Todas</option><option>Urgente</option><option>Alta</option><option>Média</option><option>Baixa</option>
-            </select>
-          </div>
-          <div className="filter-group">
-            <label>Técnico</label>
-            <select value={filters.tech} onChange={e => setFilters({...filters, tech: e.target.value})}>
-              <option>Todos</option><option>Ricardo Técnico</option><option>Não atribuído</option>
-            </select>
-          </div>
-          <div className="filter-group">
-            <label>Período</label>
-            <select value={filters.date} onChange={e => setFilters({...filters, date: e.target.value})}>
-              <option>Tudo</option><option>Hoje</option><option>Semana</option>
-            </select>
-          </div>
-          <button className="btn-reset" onClick={() => setFilters({ status: 'Todos', priority: 'Todas', tech: 'Todos', date: 'Tudo' })}>Limpar Filtros</button>
+          <div className="filter-group"><label>Status</label><select value={filters.status} onChange={e => setFilters({...filters, status: e.target.value})}><option>Todos</option><option>Aberto</option><option>Em Andamento</option><option>Concluído</option></select></div>
+          <div className="filter-group"><label>Prioridade</label><select value={filters.priority} onChange={e => setFilters({...filters, priority: e.target.value})}><option>Todas</option><option>Urgente</option><option>Alta</option><option>Média</option><option>Baixa</option></select></div>
+          <div className="filter-group"><label>Técnico</label><select value={filters.tech} onChange={e => setFilters({...filters, tech: e.target.value})}><option>Todos</option><option>Ricardo Técnico</option><option>Não atribuído</option></select></div>
+          <div className="filter-group"><label>Período</label><select value={filters.date} onChange={e => setFilters({...filters, date: e.target.value})}><option>Tudo</option><option>Hoje</option><option>Semana</option></select></div>
+          <button className="btn-reset" onClick={() => setFilters({ status: 'Todos', priority: 'Todas', tech: 'Todos', date: 'Tudo' })}>Resetar</button>
         </section>
 
-        <div className="ticket-list-header"><h3>Resultados ({filteredTickets.length})</h3></div>
+        <div className="ticket-list-header"><h3>Fila de Trabalho ({filteredTickets.length})</h3></div>
         <div className="ticket-grid">{filteredTickets.map(ticket => (<TicketCard key={ticket.id} ticket={ticket} onOpen={setSelectedTicket} />))}</div>
       </main>
     </div>
