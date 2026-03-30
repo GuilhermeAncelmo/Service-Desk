@@ -34,15 +34,10 @@ function Toast({ message, type, onClose }) {
     const timer = setTimeout(onClose, 5000)
     return () => clearTimeout(timer)
   }, [onClose])
-
   return (
     <div className={`toast ${type}`}>
-      <div className="toast-icon">
-        {type === 'success' ? '✅' : type === 'warning' ? '⚠️' : '📩'}
-      </div>
-      <div className="toast-content">
-        <p>{message}</p>
-      </div>
+      <div className="toast-icon">{type === 'success' ? '✅' : type === 'warning' ? '⚠️' : '📩'}</div>
+      <div className="toast-content"><p>{message}</p></div>
       <button className="toast-close" onClick={onClose}>&times;</button>
     </div>
   )
@@ -66,7 +61,7 @@ function Login({ onLogin }) {
         <div className="login-header">
           <div className="logo-orb">🛠️</div>
           <h1>Service Desk <span className="pro">PRO</span></h1>
-          <p>Login seguro</p>
+          <p>Portal de Filtros e Gestão</p>
         </div>
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group"><label>Usuário</label><input type="text" value={username} onChange={e => setUsername(e.target.value)} required /></div>
@@ -87,15 +82,11 @@ function TicketInteractionModal({ ticket, onClose, onAddComment, currentUser }) 
     onAddComment(ticket.id, { id: Date.now(), author: currentUser.name, role: currentUser.role, text: newComment, timestamp: new Date().toISOString() })
     setNewComment('')
   }
-
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <div className="modal-title-info">
-            <span className="modal-cat">{CATEGORY_ICONS[ticket.category]} {ticket.category}</span>
-            <h3>#T-00{ticket.id}: {ticket.title}</h3>
-          </div>
+          <div className="modal-title-info"><span className="modal-cat">{CATEGORY_ICONS[ticket.category]} {ticket.category}</span><h3>#T-00{ticket.id}: {ticket.title}</h3></div>
           <button className="close-btn" onClick={onClose}>&times;</button>
         </div>
         <div className="modal-body">
@@ -163,117 +154,120 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null)
   const [selectedTicket, setSelectedTicket] = useState(null)
   const [toasts, setToasts] = useState([])
+  const [filters, setFilters] = useState({ status: 'Todos', priority: 'Todas', tech: 'Todos', date: 'Tudo' })
+  
   const [tickets, setTickets] = useState([
     { 
-      id: 1, title: 'Erro de Login ERP', status: 'Aberto', priority: 'Urgente', category: 'Software',
+      id: 1, title: 'Erro ERP Financeiro', status: 'Aberto', priority: 'Urgente', category: 'Software',
       tags: ['Sistemas'], assignedTo: 'Ricardo Técnico', createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-      interactions: [{ id: 101, author: 'Guilherme Solicitante', role: 'Solicitante', text: 'Tela branca ao abrir.', timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString() }]
+      interactions: [{ id: 101, author: 'Financeiro', role: 'Solicitante', text: 'Sem acesso.', timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString() }]
     },
     { 
-      id: 2, title: 'Monitor piscando', status: 'Em Andamento', priority: 'Média', category: 'Hardware',
-      tags: ['Manutenção'], assignedTo: 'Ricardo Técnico', createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-      interactions: [{ id: 102, author: 'Financeiro', role: 'Solicitante', text: 'O PC está piscando.', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString() }]
+      id: 2, title: 'Mouse quebrado', status: 'Em Andamento', priority: 'Baixa', category: 'Hardware',
+      tags: ['Periféricos'], assignedTo: 'Ricardo Técnico', createdAt: new Date(Date.now() - 1000 * 60 * 60 * 120).toISOString(),
+      interactions: [{ id: 102, author: 'RH', role: 'Solicitante', text: 'Não funciona.', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 120).toISOString() }]
     },
     { 
-      id: 4, title: 'VPN Lenta', status: 'Aberto', priority: 'Urgente', category: 'Rede',
-      tags: ['Sinal'], assignedTo: 'Não atribuído', createdAt: new Date(Date.now() - 1000 * 60 * 60 * 1).toISOString(),
-      interactions: [{ id: 104, author: 'Comercial', role: 'Solicitante', text: 'Lentidão absurda.', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 1).toISOString() }]
+      id: 4, title: 'DNS Instável', status: 'Aberto', priority: 'Alta', category: 'Rede',
+      tags: ['Internet'], assignedTo: 'Não atribuído', createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+      interactions: [{ id: 104, author: 'Infra', role: 'Solicitante', text: 'Lento.', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString() }]
+    },
+    { 
+      id: 5, title: 'Novo SSD Instalado', status: 'Concluído', priority: 'Média', category: 'Hardware',
+      tags: ['Upgrade'], assignedTo: 'Ricardo Técnico', createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+      completedAt: new Date(Date.now() - 1000 * 60 * 60 * 1).toISOString(),
+      interactions: [{ id: 105, author: 'Marketing', role: 'Solicitante', text: 'Pedido de upgrade.', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString() }]
     },
   ])
 
-  const notify = (message, type = 'info') => {
-    const id = Date.now()
-    setToasts(prev => [...prev, { id, message, type }])
-  }
+  const notify = (m, t = 'info') => setToasts(prev => [...prev, { id: Date.now(), message: m, type: t }])
 
-  // Monitorar SLA próximo de estourar
+  const filteredTickets = tickets.filter(t => {
+    const sMatch = filters.status === 'Todos' || t.status === filters.status
+    const pMatch = filters.priority === 'Todas' || t.priority === filters.priority
+    const tMatch = filters.tech === 'Todos' || t.assignedTo === filters.tech
+    
+    // Data (Simplificado p/ demo: Hoje, Semana, Mes)
+    let dMatch = true
+    const createdDate = new Date(t.createdAt)
+    const now = new Date()
+    if (filters.date === 'Hoje') {
+      dMatch = createdDate.toDateString() === now.toDateString()
+    } else if (filters.date === 'Semana') {
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+      dMatch = createdDate >= weekAgo
+    }
+    
+    return sMatch && pMatch && tMatch && dMatch
+  })
+
   useEffect(() => {
     if (!currentUser) return
-    const checkSLA = () => {
+    const interval = setInterval(() => {
       tickets.forEach(ticket => {
-        if (ticket.status !== 'Concluído') {
-          const deadline = new Date(ticket.createdAt).getTime() + (SLA_DURATIONS[ticket.priority] || 0)
-          const timeLeft = deadline - new Date().getTime()
-          // Avisar se faltar 15 min ou menos
-          if (timeLeft > 0 && timeLeft < 15 * 60 * 1000 && !ticket.slaNotified) {
-            notify(`Atenção: SLA do chamado #T-00${ticket.id} está próximo de estourar!`, 'warning')
-            ticket.slaNotified = true // Flag temporária para não repetir
-          }
+        const deadline = new Date(ticket.createdAt).getTime() + (SLA_DURATIONS[ticket.priority] || 0)
+        const diff = deadline - new Date().getTime()
+        if (ticket.status !== 'Concluído' && diff > 0 && diff < 15 * 60 * 1000 && !ticket.slaNotified) {
+          notify(`Chamado #T-00${ticket.id} próximo do vencimento!`, 'warning')
+          ticket.slaNotified = true
         }
       })
-    }
-    const interval = setInterval(checkSLA, 30000)
+    }, 30000)
     return () => clearInterval(interval)
   }, [tickets, currentUser])
 
-  const addComment = (ticketId, comment) => {
-    setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, interactions: [...t.interactions, comment] } : t))
-    if (selectedTicket && selectedTicket.id === ticketId) setSelectedTicket(prev => ({ ...prev, interactions: [...prev.interactions, comment] }))
-    notify(`Nova atualização no chamado #T-00${ticketId}`, 'info')
-  }
-
-  const createTicket = () => {
-    const newT = {
-      id: tickets.length + 1,
-      title: 'Novo pedido de suporte extra',
-      status: 'Aberto',
-      priority: 'Média',
-      category: 'Software',
-      tags: ['Instalação'],
-      assignedTo: 'Não atribuído',
-      createdAt: new Date().toISOString(),
-      interactions: [{ id: Date.now(), author: currentUser.name, role: currentUser.role, text: 'Preciso de ajuda urgente.', timestamp: new Date().toISOString() }]
-    }
-    setTickets([newT, ...tickets])
-    notify('Um novo chamado foi aberto no seu setor!', 'success')
+  const addComment = (tId, c) => {
+    setTickets(prev => prev.map(t => t.id === tId ? { ...t, interactions: [...t.interactions, c] } : t))
+    notify(`Novo comentário no #T-00${tId}`, 'info')
   }
 
   if (!currentUser) return <Login onLogin={setCurrentUser} />
 
-  const stats = (() => {
-    const completed = tickets.filter(t => t.status === 'Concluído')
-    const totalFinishedOrCurrent = tickets.length
-    const breached = tickets.filter(t => {
-      const deadline = new Date(t.createdAt).getTime() + (SLA_DURATIONS[t.priority] || 0)
-      return (t.status === 'Concluído' ? new Date(t.completedAt).getTime() : new Date().getTime()) > deadline
-    }).length
-    return { 
-      mttr: completed.length > 0 ? (completed.reduce((s, t) => s + (new Date(t.completedAt) - new Date(t.createdAt)), 0) / completed.length / 3600000).toFixed(1) : '0',
-      slaRate: totalFinishedOrCurrent > 0 ? (((totalFinishedOrCurrent - breached) / totalFinishedOrCurrent) * 100).toFixed(0) : '100'
-    }
-  })()
-
   return (
     <div className="layout">
-      <div className="toast-container">
-        {toasts.map(toast => (
-          <Toast key={toast.id} message={toast.message} type={toast.type} onClose={() => setToasts(prev => prev.filter(t => t.id !== toast.id))} />
-        ))}
-      </div>
-      
+      <div className="toast-container">{toasts.map(t => <Toast key={t.id} message={t.message} type={t.type} onClose={() => setToasts(p => p.filter(x => x.id !== t.id))} />)}</div>
       {selectedTicket && <TicketInteractionModal ticket={selectedTicket} onClose={() => setSelectedTicket(null)} onAddComment={addComment} currentUser={currentUser} />}
-      
       <header className="header">
         <div className="logo"><h1>Service Desk <span className="pro">PRO</span></h1></div>
-        <div className="header-right">
-          <button className="logout-btn" onClick={() => setCurrentUser(null)}>Sair</button>
-          <div className="user-profile"><div className="avatar">GS</div><div className="user-info"><span>{currentUser.name}</span></div></div>
-        </div>
+        <div className="header-right"><button className="logout-btn" onClick={() => setCurrentUser(null)}>Sair</button><div className="avatar">GS</div><div className="user-info"><span>{currentUser.name}</span></div></div>
       </header>
 
       <main className="main-content">
         <section className="title-bar">
-          <div className="title-text"><h2>Gestão Operacional</h2><p className="subtitle">Relatórios e alertas em tempo real.</p></div>
-          <button className="btn-primary" onClick={createTicket}>+ Novo Chamado</button>
+          <div className="title-text"><h2>Gestão Operacional</h2><p className="subtitle">Relatórios e filtros inteligentes.</p></div>
+          <button className="btn-primary">+ Criar Ticket</button>
         </section>
 
-        <section className="metrics-grid">
-          <div className="metric-card"><span className="metric-icon">⏱️</span><div className="metric-info"><span className="metric-label">MTTR Médio</span><span className="metric-value">{stats.mttr}h</span></div></div>
-          <div className="metric-card"><span className="metric-icon">📊</span><div className="metric-info"><span className="metric-label">SLA Cumprido</span><span className={`metric-value ${stats.slaRate < 80 ? 'warning' : 'success'}`}>{stats.slaRate}%</span></div></div>
+        <section className="filter-bar">
+          <div className="filter-group">
+            <label>Status</label>
+            <select value={filters.status} onChange={e => setFilters({...filters, status: e.target.value})}>
+              <option>Todos</option><option>Aberto</option><option>Em Andamento</option><option>Concluído</option>
+            </select>
+          </div>
+          <div className="filter-group">
+            <label>Prioridade</label>
+            <select value={filters.priority} onChange={e => setFilters({...filters, priority: e.target.value})}>
+              <option>Todas</option><option>Urgente</option><option>Alta</option><option>Média</option><option>Baixa</option>
+            </select>
+          </div>
+          <div className="filter-group">
+            <label>Técnico</label>
+            <select value={filters.tech} onChange={e => setFilters({...filters, tech: e.target.value})}>
+              <option>Todos</option><option>Ricardo Técnico</option><option>Não atribuído</option>
+            </select>
+          </div>
+          <div className="filter-group">
+            <label>Período</label>
+            <select value={filters.date} onChange={e => setFilters({...filters, date: e.target.value})}>
+              <option>Tudo</option><option>Hoje</option><option>Semana</option>
+            </select>
+          </div>
+          <button className="btn-reset" onClick={() => setFilters({ status: 'Todos', priority: 'Todas', tech: 'Todos', date: 'Tudo' })}>Limpar Filtros</button>
         </section>
 
-        <div className="ticket-list-header"><h3>Fila de Chamados Ativos</h3></div>
-        <div className="ticket-grid">{tickets.map(ticket => (<TicketCard key={ticket.id} ticket={ticket} onOpen={setSelectedTicket} />))}</div>
+        <div className="ticket-list-header"><h3>Resultados ({filteredTickets.length})</h3></div>
+        <div className="ticket-grid">{filteredTickets.map(ticket => (<TicketCard key={ticket.id} ticket={ticket} onOpen={setSelectedTicket} />))}</div>
       </main>
     </div>
   )
