@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 
+const API_BASE = 'http://localhost:3001/api'
+
 // Períodos de SLA por Prioridade
 const SLA_DURATIONS = {
   'Urgente': 2 * 60 * 60 * 1000,
@@ -61,7 +63,7 @@ function Login({ onLogin }) {
         <div className="login-header">
           <div className="logo-orb">🛠️</div>
           <h1>Service Desk <span className="pro">PRO</span></h1>
-          <p>Gestão Unificada</p>
+          <p>Portal Corporativo</p>
         </div>
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group"><label>Usuário</label><input type="text" value={username} onChange={e => setUsername(e.target.value)} required /></div>
@@ -76,12 +78,36 @@ function Login({ onLogin }) {
 
 function TicketInteractionModal({ ticket, onClose, onAddComment, currentUser }) {
   const [newComment, setNewComment] = useState('')
-  const handleSubmit = (e) => {
+  const [timeline, setTimeline] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchTimeline = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/tickets/${ticket.id}/interactions`)
+        const data = await res.json()
+        setTimeline(data)
+      } catch (err) { console.error('Erro na timeline:', err) }
+      finally { setLoading(false) }
+    }
+    fetchTimeline()
+  }, [ticket.id])
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!newComment.trim()) return
-    onAddComment(ticket.id, { id: Date.now() + Math.random(), author: currentUser.name, role: currentUser.role, text: newComment, timestamp: new Date().toISOString() })
+    const interaction = { author: currentUser.name, role: currentUser.role, text: newComment }
+    const res = await fetch(`${API_BASE}/tickets/${ticket.id}/interactions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(interaction)
+    })
+    const saved = await res.json()
+    setTimeline([...timeline, {...saved, timestamp: new Date().toISOString()}])
+    onAddComment(ticket.id)
     setNewComment('')
   }
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
@@ -90,17 +116,19 @@ function TicketInteractionModal({ ticket, onClose, onAddComment, currentUser }) 
           <button className="close-btn" onClick={onClose}>&times;</button>
         </div>
         <div className="modal-body">
-          <div className="timeline">
-            {ticket.interactions.map(item => (
-              <div key={item.id} className="timeline-item">
-                <div className="timeline-dot"></div>
-                <div className="timeline-card">
-                  <div className="timeline-meta"><span className="author">{item.author} ({item.role})</span><span className="time">{new Date(item.timestamp).toLocaleString()}</span></div>
-                  <p className="text">{item.text}</p>
+          {loading ? <p>Carregando histórico...</p> : (
+            <div className="timeline">
+              {timeline.map(item => (
+                <div key={item.id} className="timeline-item">
+                  <div className="timeline-dot"></div>
+                  <div className="timeline-card">
+                    <div className="timeline-meta"><span className="author">{item.author} ({item.role})</span><span className="time">{new Date(item.timestamp).toLocaleString()}</span></div>
+                    <p className="text">{item.text}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
         <div className="modal-footer">
           <form className="comment-form" onSubmit={handleSubmit}>
@@ -145,7 +173,7 @@ function TicketCard({ ticket, onOpen }) {
         </div>
       )}
       <div className="ticket-assignment"><span className="assignee-name">👤 {ticket.assignedTo}</span></div>
-      <div className="ticket-footer"><span className={`status-pill ${ticket.status.toLowerCase().replace(' ', '-')}`}>{ticket.status}</span><span className="interactions-count">💬 {ticket.interactions.length}</span></div>
+      <div className="ticket-footer"><span className={`status-pill ${ticket.status.toLowerCase().replace(' ', '-')}`}>{ticket.status}</span></div>
     </div>
   )
 }
@@ -155,30 +183,17 @@ function App() {
   const [selectedTicket, setSelectedTicket] = useState(null)
   const [toasts, setToasts] = useState([])
   const [filters, setFilters] = useState({ status: 'Todos', priority: 'Todas', tech: 'Todos', date: 'Tudo' })
+  const [tickets, setTickets] = useState([])
   
-  const [tickets, setTickets] = useState([
-    { 
-      id: 1, title: 'Erro ERP Financeiro', status: 'Aberto', priority: 'Urgente', category: 'Software',
-      tags: ['Sistemas'], assignedTo: 'Ricardo Técnico', createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-      interactions: [{ id: 101, author: 'Financeiro', role: 'Solicitante', text: 'Sem acesso.', timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString() }]
-    },
-    { 
-      id: 2, title: 'Mouse quebrado', status: 'Em Andamento', priority: 'Baixa', category: 'Hardware',
-      tags: ['Periféricos'], assignedTo: 'Ricardo Técnico', createdAt: new Date(Date.now() - 1000 * 60 * 60 * 120).toISOString(),
-      interactions: [{ id: 102, author: 'RH', role: 'Solicitante', text: 'Não funciona.', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 120).toISOString() }]
-    },
-    { 
-      id: 4, title: 'DNS Instável', status: 'Aberto', priority: 'Alta', category: 'Rede',
-      tags: ['Internet'], assignedTo: 'Não atribuído', createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-      interactions: [{ id: 104, author: 'Infra', role: 'Solicitante', text: 'Lento.', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString() }]
-    },
-    { 
-      id: 5, title: 'Novo SSD Instalado', status: 'Concluído', priority: 'Média', category: 'Hardware',
-      tags: ['Upgrade'], assignedTo: 'Ricardo Técnico', createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-      completedAt: new Date(Date.now() - 1000 * 60 * 60 * 1).toISOString(),
-      interactions: [{ id: 105, author: 'Marketing', role: 'Solicitante', text: 'Pedido de upgrade.', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString() }]
-    },
-  ])
+  const fetchTickets = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/tickets`)
+      const data = await res.json()
+      setTickets(data)
+    } catch (err) { console.error('Erro tickets:', err) }
+  }
+
+  useEffect(() => { if (currentUser) fetchTickets() }, [currentUser])
 
   const notify = (m, t = 'info') => setToasts(prev => [...prev, { id: Date.now() + Math.random(), message: m, type: t }])
 
@@ -190,7 +205,6 @@ function App() {
     return sMatch && pMatch && tMatch && dMatch
   })
 
-  // Cálculos de Performance
   const stats = (() => {
     const closed = tickets.filter(t => t.status === 'Concluído' && t.completedAt)
     const breached = tickets.filter(t => {
@@ -204,24 +218,22 @@ function App() {
     }
   })()
 
-  useEffect(() => {
-    if (!currentUser) return
-    const interval = setInterval(() => {
-      tickets.forEach(ticket => {
-        const deadline = new Date(ticket.createdAt).getTime() + (SLA_DURATIONS[ticket.priority] || 0)
-        const diff = deadline - new Date().getTime()
-        if (ticket.status !== 'Concluído' && diff > 0 && diff < 15 * 60 * 1000 && !ticket.slaNotified) {
-          notify(`⚠️ SLA crítico para #T-00${ticket.id}!`, 'warning')
-          ticket.slaNotified = true
-        }
-      })
-    }, 30000)
-    return () => clearInterval(interval)
-  }, [tickets, currentUser])
+  const createTicket = async () => {
+    const newT = { title: 'Novo Chamado de Teste', priority: 'Média', category: 'Software', tags: ['Geral'], assignedTo: 'Ricardo Técnico' }
+    const res = await fetch(`${API_BASE}/tickets`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newT)
+    })
+    if (res.ok) {
+      notify('Novo chamado criado via Persistence API', 'success')
+      fetchTickets()
+    }
+  }
 
-  const addComment = (tId, c) => {
-    setTickets(prev => prev.map(t => t.id === tId ? { ...t, interactions: [...t.interactions, c] } : t))
-    notify(`Novidades no chamado #T-00${tId}`, 'info')
+  const handleInteractionAdded = (tId) => {
+    notify(`Nova atualização no #T-00${tId}`, 'info')
+    // No need to fetch all tickets unless we want to update the interaction count (if we had one)
   }
 
   if (!currentUser) return <Login onLogin={setCurrentUser} />
@@ -229,7 +241,7 @@ function App() {
   return (
     <div className="layout">
       <div className="toast-container">{toasts.map(t => <Toast key={t.id} message={t.message} type={t.type} onClose={() => setToasts(p => p.filter(x => x.id !== t.id))} />)}</div>
-      {selectedTicket && <TicketInteractionModal ticket={selectedTicket} onClose={() => setSelectedTicket(null)} onAddComment={addComment} currentUser={currentUser} />}
+      {selectedTicket && <TicketInteractionModal ticket={selectedTicket} onClose={() => setSelectedTicket(null)} onAddComment={handleInteractionAdded} currentUser={currentUser} />}
       <header className="header">
         <div className="logo"><h1>Service Desk <span className="pro">PRO</span></h1></div>
         <div className="header-right"><button className="logout-btn" onClick={() => setCurrentUser(null)}>Sair</button><div className="avatar">GS</div><div className="user-info"><span>{currentUser.name}</span></div></div>
@@ -237,8 +249,8 @@ function App() {
 
       <main className="main-content">
         <section className="title-bar">
-          <div className="title-text"><h2>Gestão de Performance</h2><p className="subtitle">Visão 360º da sua operação.</p></div>
-          <button className="btn-primary" onClick={() => notify('Funcionalidade em desenvolvimento!', 'info')}>+ Novo Chamado</button>
+          <div className="title-text"><h2>Gestão de Performance</h2><p className="subtitle">Visão Persistente em SQLite.</p></div>
+          <button className="btn-primary" onClick={createTicket}>+ Novo Chamado</button>
         </section>
 
         <section className="metrics-grid">
@@ -255,7 +267,6 @@ function App() {
           <button className="btn-reset" onClick={() => setFilters({ status: 'Todos', priority: 'Todas', tech: 'Todos', date: 'Tudo' })}>Resetar</button>
         </section>
 
-        <div className="ticket-list-header"><h3>Fila de Trabalho ({filteredTickets.length})</h3></div>
         <div className="ticket-grid">{filteredTickets.map(ticket => (<TicketCard key={ticket.id} ticket={ticket} onOpen={setSelectedTicket} />))}</div>
       </main>
     </div>
