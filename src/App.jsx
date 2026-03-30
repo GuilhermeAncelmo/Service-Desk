@@ -62,8 +62,8 @@ function Login({ onLogin }) {
       <div className="login-card">
         <div className="login-header">
           <div className="logo-orb">🛠️</div>
-          <h1>Service Desk <span className="pro">PRO</span></h1>
-          <p>Portal Corporativo</p>
+          <h1>Ticket<span className="pro">Ops</span></h1>
+          <p>Portal Corporativo de TI</p>
         </div>
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group"><label>Usuário</label><input type="text" value={username} onChange={e => setUsername(e.target.value)} required /></div>
@@ -226,14 +226,13 @@ function App() {
       body: JSON.stringify(newT)
     })
     if (res.ok) {
-      notify('Novo chamado criado via Persistence API', 'success')
+      notify('Novo chamado criado no TicketOps', 'success')
       fetchTickets()
     }
   }
 
   const handleInteractionAdded = (tId) => {
     notify(`Nova atualização no #T-00${tId}`, 'info')
-    // No need to fetch all tickets unless we want to update the interaction count (if we had one)
   }
 
   if (!currentUser) return <Login onLogin={setCurrentUser} />
@@ -243,13 +242,13 @@ function App() {
       <div className="toast-container">{toasts.map(t => <Toast key={t.id} message={t.message} type={t.type} onClose={() => setToasts(p => p.filter(x => x.id !== t.id))} />)}</div>
       {selectedTicket && <TicketInteractionModal ticket={selectedTicket} onClose={() => setSelectedTicket(null)} onAddComment={handleInteractionAdded} currentUser={currentUser} />}
       <header className="header">
-        <div className="logo"><h1>Service Desk <span className="pro">PRO</span></h1></div>
+        <div className="logo"><h1>Ticket<span className="pro">Ops</span></h1></div>
         <div className="header-right"><button className="logout-btn" onClick={() => setCurrentUser(null)}>Sair</button><div className="avatar">GS</div><div className="user-info"><span>{currentUser.name}</span></div></div>
       </header>
 
       <main className="main-content">
         <section className="title-bar">
-          <div className="title-text"><h2>Gestão de Performance</h2><p className="subtitle">Visão Persistente em SQLite.</p></div>
+          <div className="title-text"><h2>Gestão de Operações</h2><p className="subtitle">Ecossistema de performance e chamados.</p></div>
           <button className="btn-primary" onClick={createTicket}>+ Novo Chamado</button>
         </section>
 
@@ -267,6 +266,7 @@ function App() {
           <button className="btn-reset" onClick={() => setFilters({ status: 'Todos', priority: 'Todas', tech: 'Todos', date: 'Tudo' })}>Resetar</button>
         </section>
 
+        <div className="ticket-list-header"><h3>Resultados ({filteredTickets.length})</h3></div>
         <div className="ticket-grid">{filteredTickets.map(ticket => (<TicketCard key={ticket.id} ticket={ticket} onOpen={setSelectedTicket} />))}</div>
       </main>
     </div>
