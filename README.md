@@ -1,16 +1,26 @@
-# React + Vite
+# Service Desk (TicketOps)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Protótipo de gestão de chamados de TI com prioridade, responsável, interações e acompanhamento de prazo de atendimento (SLA).
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Frontend: React, JavaScript e Vite
+- Backend: Node.js e Express
+- Persistência local: SQLite
 
-## React Compiler
+## Funcionalidades
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Criação, listagem e atualização de chamados
+- Histórico de interações por chamado
+- Contagem regressiva de SLA por prioridade
+- Filtros por status, prioridade e responsável
 
-## Expanding the ESLint configuration
+## Executar localmente
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Requer Node.js e npm. No diretório `backend`, execute `npm install` e `npm run dev`. Na raiz do projeto, execute `npm install` e `npm run dev`. Abra a URL informada pelo Vite. O frontend usa `http://localhost:3001/api`.
+
+## Estado do projeto
+
+Este é um protótipo. Os usuários e senhas de demonstração estão definidos no frontend e não representam autenticação segura. O banco SQLite é local; não há implantação pública documentada.
+
+Próximos passos: autenticação no backend, configuração da URL da API por ambiente e testes para regras de SLA.
